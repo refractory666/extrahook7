@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Fichiers sources">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Fichiers d%27en-tête">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Fichiers de ressources">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Fichiers d%27en-tête\ImGui">
+      <UniqueIdentifier>{47220010-9dac-481f-9573-fbd12a786b28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mem">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="features">
+      <UniqueIdentifier>{b2c3d4e5-f6a7-8901-bcde-f12345678901}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="features\cheat">
+      <UniqueIdentifier>{c3d4e5f6-a7b8-9012-cdef-123456789012}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="includes.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="render\overlay.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imconfig.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imgui.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imgui_impl_dx11.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imgui_impl_win32.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imgui_internal.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imstb_rectpack.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imstb_textedit.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\imgui\imstb_truetype.h">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="render\menu.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="mem\memory.h">
+      <Filter>mem</Filter>
+    </ClInclude>
+    <ClInclude Include="mem\scanner.h">
+      <Filter>mem</Filter>
+    </ClInclude>
+    <ClInclude Include="mem\console.h">
+      <Filter>mem</Filter>
+    </ClInclude>
+    <ClInclude Include="features\cheat\Offset.h">
+      <Filter>features\cheat</Filter>
+    </ClInclude>
+    <ClInclude Include="features\cheat\esp.h">
+      <Filter>features\cheat</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="entry.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="render\menu.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="render\overlay.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="mem\memory.cpp">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="mem\scanner.cpp">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="mem\console.cpp">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="features\cheat\esp.cpp">
+      <Filter>features\cheat</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui_demo.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui_draw.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui_impl_dx11.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui_impl_win32.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui_tables.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\imgui\imgui_widgets.cpp">
+      <Filter>Fichiers d%27en-tête\ImGui</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

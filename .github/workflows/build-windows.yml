@@ -1,0 +1,52 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+
+env:
+  SOLUTION: product.vcxproj
+  CONFIGURATION: Release
+  PLATFORM: Win32
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build
+        run: msbuild "$env:SOLUTION" /m /p:Configuration="$env:CONFIGURATION" /p:Platform="$env:PLATFORM" /p:WindowsTargetPlatformVersion=10.0
+
+      - name: Locate executable
+        id: exe
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path . -Filter *.exe -Recurse -File |
+            Where-Object { $_.FullName -notmatch '\\(obj|Debug|x64)\\' } |
+            Select-Object -First 1
+          if (-not $exe) { throw 'EXE was not produced' }
+          "path=$($exe.FullName)" >> $env:GITHUB_OUTPUT
+          Write-Host "Found $($exe.FullName)"
+
+      - name: Stage EXE and maps
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifact\maps | Out-Null
+          Copy-Item "${{ steps.exe.outputs.path }}" artifact\
+          Copy-Item features\colliders\maps\*.glb artifact\maps\
+
+      - name: Upload EXE and maps
+        uses: actions/upload-artifact@v4
+        with:
+          name: extrahook-win32-release
+          path: artifact\
+          if-no-files-found: error
