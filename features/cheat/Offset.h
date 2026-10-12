@@ -517,6 +517,7 @@ namespace Offsets
 	{
 		inline uintptr_t MatrixOffset = OBF_UPTR(0xE0u);  // view matrix в native Camera
 		inline uintptr_t FieldOfView = OBF_UPTR(0xDCu);  // native camera fieldOfView (новая Unity)
+	}
 
 	// PlayerCameraConfiguration (TypeInfo not in dump — find via scan or DI)
 	namespace PlayerCameraConfiguration_
