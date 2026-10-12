@@ -46,6 +46,19 @@ namespace Offsets
 		inline uintptr_t Transport = OBF_UPTR(0x78u);        // -> hbu (transport), +0x68 -> stn (actor)
 	}
 
+	// ClientWorldOptions (at ClientWorld +0x0C)
+	namespace ClientWorldOptions_
+	{
+		inline uintptr_t InterpolationBufferSeconds = OBF_UPTR(0x08u);
+		inline uintptr_t InputPrediction = OBF_UPTR(0x0Cu); // bool
+	}
+
+	// Transport (hbu) — at ClientWorld +0x78
+	namespace Transport_
+	{
+		inline uintptr_t LocalActor = OBF_UPTR(0x68u); // -> stn (our actor)
+	}
+
 	// =====================================================================
 	// 2.2 Object registry and list — replaces PlayerManager cached dict.
 	// njh+0x20 -> gat -> gat+0x18 -> gzx -> gzx+0x0C -> yjk<krm> array
@@ -96,14 +109,16 @@ namespace Offsets
 	inline uintptr_t NetObject_TypeInfo = OBF_UPTR(0xA3B1424u);
 	namespace NetObject_
 	{
-		// NetObjectId at +0x08: id(4) + OwnerId(byte +0x0C) + TypeId(byte +0x0D) + InstanceId(ushort +0x0E)
-		inline uintptr_t OwnerId = OBF_UPTR(0x0Cu);
-		inline uintptr_t TypeId = OBF_UPTR(0x0Du);
-		inline uintptr_t InstanceId = OBF_UPTR(0x0Eu);
+		// From il2cpp.h: NetObjectId_o* lpmx (pointer at +0x08 in _Fields = obj+0x08)
+		// NetObjectId layout (when dereferenced): id(4)@0x08, OwnerId(byte)@0x0C, TypeId(byte)@0x0D, InstanceId(ushort)@0x0E
+		// Note: must dereference pointer at +0x08 to access NetObjectId fields
+		inline uintptr_t NetObjectIdPtr = OBF_UPTR(0x08u);  // pointer to NetObjectId* (boxed)
+		// Helper: read OwnerId = Read(Read(net_obj+0x08) + 0x0C)
+		inline uintptr_t OwnerId = OBF_UPTR(0x08u);  // pointer to NetObjectId, then +0x0C for OwnerId
 		inline uintptr_t World = OBF_UPTR(0x10u);      // -> njh
 		inline uintptr_t Systems = OBF_UPTR(0x14u);    // -> wmz
 		inline uintptr_t Parts = OBF_UPTR(0x18u);      // -> rct (List<part>), +0x08 items, +0x0C size; +0x10 array
-		inline uintptr_t ActivityFlags = OBF_UPTR(0x28u); // bool flags [0x28/0x29/0x2A]
+		inline uintptr_t ActivityFlags = OBF_UPTR(0x28u); // bool flags (0x28/0x29/0x2A)
 	}
 
 	// =====================================================================
@@ -112,15 +127,23 @@ namespace Offsets
 	inline uintptr_t Player_TypeInfo_Real = OBF_UPTR(0xA3AF5DCu);
 	namespace Player_
 	{
-		inline uintptr_t NetObjectId = OBF_UPTR(0x08u);    // +0x08 id, +0x0C OwnerId (byte)
-		inline uintptr_t OwnerId = OBF_UPTR(0x0Cu);        // byte -> ActorId (свой/чужой)
+		// ake inherits NetObject (mfc). NetObjectId is a pointer to boxed struct.
+		// To read OwnerId: Read(ake + 0x08) -> netobj_ptr; Read(netobj_ptr + 0x0C) -> OwnerId
+		inline uintptr_t NetObjectId = OBF_UPTR(0x08u);    // pointer to boxed NetObjectId
+		inline uintptr_t OwnerId = OBF_UPTR(0x0Cu);        // byte -> ActorId (read via NetObject_::NetObjectIdPtr helper)
 		inline uintptr_t PlayerConfig = OBF_UPTR(0x38u);   // PlayerObjectConfiguration (+0x18 CenterOffset)
-		inline uintptr_t TransformPart = OBF_UPTR(0x40u);  // -> dwc
-		inline uintptr_t StatsPart = OBF_UPTR(0x44u);      // -> ylw (HP/броня)
-		inline uintptr_t CameraLinks = OBF_UPTR(0x48u);    // -> yyl (ссылки, цель камеры)
-		inline uintptr_t State = OBF_UPTR(0x4Cu);          // byte-enum [ПРОВЕРИТЬ: жив/мёртв]
+		inline uintptr_t TransformPart = OBF_UPTR(0x40u);  // uint32_t -> dwc* (pointer)
+		inline uintptr_t StatsPart = OBF_UPTR(0x44u);      // uint32_t -> ylw* (pointer)
+		inline uintptr_t CameraLinks = OBF_UPTR(0x48u);    // uint32_t -> yyl* (pointer)
+		inline uintptr_t State = OBF_UPTR(0x4Cu);          // byte-enum состояние игрока (жив/мёртв)
 		inline uintptr_t Visibility = OBF_UPTR(0x50u);     // -> qdp
 		inline uintptr_t Team = OBF_UPTR(0x54u);           // byte команда (1=TR 2=CT)
+	}
+
+	// PlayerObjectConfiguration (at ake +0x38)
+	namespace PlayerObjectConfiguration_
+	{
+		inline uintptr_t CenterOffset = OBF_UPTR(0x18u); // Vector3
 	}
 
 	// =====================================================================
@@ -130,7 +153,7 @@ namespace Offsets
 	namespace TransformPart_
 	{
 		inline uintptr_t RootTransform = OBF_UPTR(0x14u);   // Transform корня игрока (позиция ног)
-		inline uintptr_t SecondTransform = OBF_UPTR(0x18u); // [ПРОВЕРИТЬ]
+		inline uintptr_t SecondTransform = OBF_UPTR(0x18u); // Transform второй (корень модели/камеры)
 		inline uintptr_t PlayerBindings = OBF_UPTR(0x1Cu);  // -> PlayerBindings
 		inline uintptr_t CharacterController = OBF_UPTR(0x20u);
 		inline uintptr_t CapsuleCollider = OBF_UPTR(0x24u);
@@ -170,10 +193,22 @@ namespace Offsets
 		inline uintptr_t OutlineMaterial = OBF_UPTR(0x2Cu);     // Material обводки
 	}
 
+	// HitBoxCollider (MonoBehaviour) — TypeInfo 0xA3D178C
+	// Layout: +0x08 m_CachedPtr, +0x0C m_Enabled, +0x10 HitBox, +0x18 Collider, +0x1C owner
+	inline uintptr_t HitBoxCollider_TypeInfo = OBF_UPTR(0xA3D178Cu);
+	namespace HitBoxCollider_
+	{
+		inline uintptr_t HitBox = OBF_UPTR(0x10u);           // embedded struct: bone(+0x08), lossPenetrationPower(+0x0C)
+		inline uintptr_t Bone = OBF_UPTR(0x18u);             // HumanBodyBones (inside HitBox at +0x08)
+		inline uintptr_t LossPenetrationPower = OBF_UPTR(0x1Cu); // int (inside HitBox at +0x0C)
+		inline uintptr_t Collider = OBF_UPTR(0x18u);         // Collider (after HitBox struct)
+		inline uintptr_t Owner = OBF_UPTR(0x1Cu);            // владелец (rph)
+	}
+
 	// BonesDictionary = Dictionary<HumanBodyBones, Transform> — TypeInfo 0xA3A84C4
-	inline uintptr_t BonesDictionary_TypeInfo = OBF_UPTR(0xA3A84C4u);
-	// [ПРОВЕРИТЬ раскладку Dictionary 32-бит]: +0x0C entries (массив), +0x10 count
+	// Dictionary 32-бит layout: +0x0C entries (массив), +0x10 count
 	// entry 16 байт {int hash, int next, int key(HumanBodyBones), Transform value}, с +0x10 массива
+	inline uintptr_t BonesDictionary_TypeInfo = OBF_UPTR(0xA3A84C4u);
 	namespace BonesDictionary_
 	{
 		inline uintptr_t Entries = OBF_UPTR(0x0Cu);
@@ -186,7 +221,7 @@ namespace Offsets
 	inline uintptr_t StatsPart_TypeInfo = OBF_UPTR(0xA3B344Cu);
 	namespace StatsPart_
 	{
-		// +0x08 +0x0A +0x0C +0x0E +0x10 +0x12  ushort x6 (HP, maxHP, броня, maxБроня ...) [ПРОВЕРИТЬ порядок]
+		// +0x08 +0x0A +0x0C +0x0E +0x10 +0x12  ushort x6 (HP, maxHP, броня, maxБроня ...)
 		inline uintptr_t Health = OBF_UPTR(0x08u);   // ushort HP
 		inline uintptr_t MaxHealth = OBF_UPTR(0x0Au);
 		inline uintptr_t Armor = OBF_UPTR(0x0Cu);    // ushort броня
@@ -201,7 +236,7 @@ namespace Offsets
 	inline uintptr_t UntouchableStatus_TypeInfo = OBF_UPTR(0xA3B2580u);
 	namespace UntouchableStatus_
 	{
-		inline uintptr_t IsUntouchable = OBF_UPTR(0x08u); // bool [ПРОВЕРИТЬ]
+		inline uintptr_t IsUntouchable = OBF_UPTR(0x08u); // bool неуязвим
 		inline uintptr_t Field_09 = OBF_UPTR(0x09u);
 		inline uintptr_t Field_0A = OBF_UPTR(0x0Au);
 		inline uintptr_t Field_0C = OBF_UPTR(0x0Cu); // float
@@ -220,7 +255,7 @@ namespace Offsets
 		inline uintptr_t Field_0B = OBF_UPTR(0x0Bu);
 		inline uintptr_t Field_0C = OBF_UPTR(0x0Cu);
 		inline uintptr_t Field_0D = OBF_UPTR(0x0Du);
-		// +0x10 Bounds, +0x28 float3, +0x34 float3[] точки [ПРОВЕРИТЬ, какой флаг = видим]
+		// +0x10 Bounds, +0x28 float3, +0x34 float3[] точки
 	}
 
 	// =====================================================================
@@ -232,9 +267,9 @@ namespace Offsets
 	{
 		inline uintptr_t ActorId = OBF_UPTR(0x08u);  // byte ActorId (== ake.OwnerId -> это мы)
 		inline uintptr_t Nickname = OBF_UPTR(0x0Cu); // string ник
-		inline uintptr_t Field_10 = OBF_UPTR(0x10u); // bool [ПРОВЕРИТЬ]
-		inline uintptr_t IsBot = OBF_UPTR(0x11u);    // bool (бот?) [ПРОВЕРИТЬ]
-		inline uintptr_t UID = OBF_UPTR(0x20u);      // long uid [ПРОВЕРИТЬ]
+		inline uintptr_t Field_10 = OBF_UPTR(0x10u); // bool
+		inline uintptr_t IsBot = OBF_UPTR(0x11u);    // bool (бот?)
+		inline uintptr_t UID = OBF_UPTR(0x20u);      // long uid
 	}
 
 	// =====================================================================
@@ -248,21 +283,48 @@ namespace Offsets
 		inline uintptr_t WeaponContext = OBF_UPTR(0x18u);  // встроено; относительные оффсеты ниже
 	}
 
-	// WeaponContext (embedded in nrk at +0x18) — absolute offsets within nrk:
+	// WeaponContext — allocated on the heap (nrk holds a pointer at +0x18).
+	// All offsets relative to WeaponContext object base (after Il2CppObject header).
+	// From dump.cs (verified field order). Each *field* below is a pointer unless noted.
+	// deref needed: Owner, NavigationContext, AccuracyContext, RecoilContext, ActiveWeapon, WeaponState, AimState, RecoilState, ReloadState
 	namespace WeaponContext_
 	{
-		inline uintptr_t Owner = OBF_UPTR(0x18u);          // NetObjectId
-		inline uintptr_t Team = OBF_UPTR(0x20u);           // byte
-		inline uintptr_t HitTransform = OBF_UPTR(0x24u);  // Transform (откуда стреляет)
-		inline uintptr_t NavigationContext = OBF_UPTR(0x28u); // {+0x28 bool crouch, +0x29 bool jump, +0x2C float speed, +0x30 Vector3 pos, +0x3C Vector3 vel}
-		inline uintptr_t AccuracyMult = OBF_UPTR(0x48u);  // float (разброс -> No spread) [ПРОВЕРИТЬ]
-		inline uintptr_t AccuracyAdditive = OBF_UPTR(0x4Cu); // float [ПРОВЕРИТЬ]
-		inline uintptr_t RecoilMult = OBF_UPTR(0x50u);    // float (-> No recoil)
-		inline uintptr_t ActiveWeapon = OBF_UPTR(0x54u);  // -> qjf ТЕКУЩЕЕ ОРУЖИЕ
-		inline uintptr_t WeaponState = OBF_UPTR(0x58u);   // State<WeaponState> (byte: Idle/Attack/Reload/Inspect/Take/Charge) [ПРОВЕРИТЬ]
-		inline uintptr_t AimState = OBF_UPTR(0x64u);      // State<Aim> (в прицеле)
-		inline uintptr_t RecoilState = OBF_UPTR(0x70u);   // {+0x70 Progress, +0x74 PrevProgress, +0x78 Vector2 PrevPoint, +0x80 Vector2 ActualPoint, +0x88 ApproachDeltaDist, +0x8C LastShotTime}
-		inline uintptr_t CurrentTime = OBF_UPTR(0x94u);   // float
+		inline uintptr_t Owner = OBF_UPTR(0x08u);           // NetObjectId* (deref for fields @+0x0C OwnerId)
+		inline uintptr_t Team = OBF_UPTR(0x10u);            // byte (1=TR 2=CT)
+		inline uintptr_t HitTransform = OBF_UPTR(0x14u);   // Transform*
+		inline uintptr_t NavigationContext = OBF_UPTR(0x18u);  // NavContext* (deref, see NavigationContext_)
+		inline uintptr_t AccuracyContext = OBF_UPTR(0x38u);    // AccuracyContext* (deref, float@+0x08/+0x0C)
+		inline uintptr_t RecoilContext = OBF_UPTR(0x40u);      // RecoilContext* (deref, float@+0x08)
+		inline uintptr_t ActiveWeapon = OBF_UPTR(0x44u);       // qjf* (pointer to weapon instance)
+		inline uintptr_t WeaponState = OBF_UPTR(0x48u);       // State<WeaponState>* (boxed, mode@+0x08)
+		inline uintptr_t AimState = OBF_UPTR(0x54u);          // State<Aim>* (boxed)
+		inline uintptr_t RecoilState = OBF_UPTR(0x60u);        // RecoilState* (deref, see RecoilState_)
+		inline uintptr_t ReloadState = OBF_UPTR(0x6Cu);       // State<ReloadState>* (boxed)
+		inline uintptr_t CurrentTime = OBF_UPTR(0x70u);       // float
+	}
+
+	/// NavigationContext — pointer at WeaponContext+0x20, must dereference.
+	/// Inner fields (verified from dump.cs): IsCrouch@0x8, IsJump@0x9, Speed@0x0C, Position@0x10, Velocity@0x1C
+	namespace NavigationContext_
+	{
+		inline uintptr_t Crouch = OBF_UPTR(0x08u);    // bool
+		inline uintptr_t Jump = OBF_UPTR(0x09u);      // bool
+		inline uintptr_t Speed = OBF_UPTR(0x0Cu);     // float
+		inline uintptr_t Position = OBF_UPTR(0x10u); // Vector3
+		inline uintptr_t Velocity = OBF_UPTR(0x1Cu);  // Vector3
+	}
+
+	/// RecoilState — pointer at WeaponContext+0x60, must dereference.
+	/// Inner fields (verified from dump.cs): Progress@0x8, PrevProgress@0x0C,
+	///   PrevPoint@0x10(Vector2), ActualPoint@0x18(Vector2), ApproachDeltaDist@0x20, LastShotTime@0x24
+	namespace RecoilState_
+	{
+		inline uintptr_t Progress = OBF_UPTR(0x08u);
+		inline uintptr_t PrevProgress = OBF_UPTR(0x0Cu);
+		inline uintptr_t PrevPoint = OBF_UPTR(0x10u);  // Vector2* (pointer, deref for x@+0x08, y@+0x0C)
+		inline uintptr_t ActualPoint = OBF_UPTR(0x18u); // Vector2* (pointer, deref for x@+0x08, y@+0x0C)
+		inline uintptr_t ApproachDeltaDist = OBF_UPTR(0x20u);
+		inline uintptr_t LastShotTime = OBF_UPTR(0x24u);
 	}
 
 	// WeaponState enum (byte)
@@ -281,20 +343,32 @@ namespace Offsets
 	namespace WeaponInstance_
 	{
 		inline uintptr_t WeaponId = OBF_UPTR(0x08u);  // byte
-		inline uintptr_t MetaData = OBF_UPTR(0x10u);  // -> WeaponMetaData: +0x10 OwnerId, +0x14 SkinId, +0x18 CharmId, +0x40 SkinPatternId
+		inline uintptr_t MetaData = OBF_UPTR(0x10u);  // -> WeaponMetaData (OwnerId@0x08, SkinId@0x0C, CharmId@0x10, SkinPatternId@0x38)
 		inline uintptr_t MetaId = OBF_UPTR(0x48u);
-		inline uintptr_t Field_4A = OBF_UPTR(0x4Au);  // byte [ПРОВЕРИТЬ]
-		inline uintptr_t AmmoInfo = OBF_UPTR(0x4Cu);  // ushort [ПРОВЕРИТЬ]
+		inline uintptr_t Field_4A = OBF_UPTR(0x4Au);  // byte
+		inline uintptr_t AmmoInfo = OBF_UPTR(0x4Cu);  // ushort (патроны?)
 		inline uintptr_t Field_50 = OBF_UPTR(0x50u);  // float
 	}
 
-	// WeaponMetaData
+	// WeaponSnapshot (network) — TypeInfo not specified in dump
+	namespace WeaponSnapshot_
+	{
+		inline uintptr_t Id = OBF_UPTR(0x08u);          // byte
+		inline uintptr_t MetaId = OBF_UPTR(0x0Cu);     //
+		inline uintptr_t Ammo = OBF_UPTR(0x10u);       // short
+		inline uintptr_t RestAmmo = OBF_UPTR(0x12u);    // short
+		inline uintptr_t LastAttackTime = OBF_UPTR(0x14u); // float
+		inline uintptr_t Slot = OBF_UPTR(0x18u);       // byte
+	}
+
+	// WeaponMetaData (embedded in qjf at +0x10) — offsets relative to WeaponMetaData start
+	// From dump.cs: OwnerId@0x08, SkinId@0x0C, CharmId@0x10, SkinPatternId@0x38
 	namespace WeaponMetaData_
 	{
-		inline uintptr_t OwnerId = OBF_UPTR(0x10u);   // byte
-		inline uintptr_t SkinId = OBF_UPTR(0x14u);    // int (СКИНЧЕНДЖЕР)
-		inline uintptr_t CharmId = OBF_UPTR(0x18u);   // int
-		inline uintptr_t SkinPatternId = OBF_UPTR(0x40u); // int
+		inline uintptr_t OwnerId = OBF_UPTR(0x08u);   // byte
+		inline uintptr_t SkinId = OBF_UPTR(0x0Cu);    // int (СКИНЧЕНДЖЕР)
+		inline uintptr_t CharmId = OBF_UPTR(0x10u);   // int
+		inline uintptr_t SkinPatternId = OBF_UPTR(0x38u); // int
 	}
 
 	// Weapon provider ijq — TypeInfo 0xA3B0A04, +0x0C Dictionary<WeaponId, definition>
@@ -308,7 +382,13 @@ namespace Offsets
 		inline uintptr_t Parameters = OBF_UPTR(0x1Cu); // -> WeaponParameters
 	}
 
-	// WeaponParameters (content) +0x0C слот, +0x10 категория, +0x18 ushort цена
+	// WeaponParameters (контент) +0x0C слот, +0x10 категория, +0x18 ushort цена
+	namespace WeaponParameters_
+	{
+		inline uintptr_t Slot = OBF_UPTR(0x0Cu);
+		inline uintptr_t Category = OBF_UPTR(0x10u);
+		inline uintptr_t Price = OBF_UPTR(0x18u); // ushort
+	}
 	// GunParameters (наследник WeaponBuiltIn) — TypeInfo 0xA3AA5B8
 	inline uintptr_t GunParameters_TypeInfo = OBF_UPTR(0xA3AA5B8u);
 	namespace GunParameters_
@@ -326,8 +406,7 @@ namespace Offsets
 		inline uintptr_t AccuracyParameters = OBF_UPTR(0x54u);
 	}
 
-	// WeaponDamage — content
-	inline uintptr_t WeaponDamage_TypeInfo = OBF_UPTR(0xA3C7070u); // nested in GunParameters
+	// WeaponDamage — content (nested in GunParameters at +0x4C)
 	namespace WeaponDamage_
 	{
 		inline uintptr_t HeadDamage = OBF_UPTR(0x08u);      // short
@@ -372,12 +451,12 @@ namespace Offsets
 		inline uintptr_t ButtonInputs = OBF_UPTR(0x10u);   // -> yjk<InputEntry<ButtonInput>> ("Attack","Jump","Crouch","Scope","Reload")
 	}
 
-	// ButtonInput +0x0 WasPressedInThisFrame, +0x1 WasReleasedInThisFrame, +0x2 IsPressed
+	// ButtonInput — в боксе (+0x8/+0x9/+0xA), т.к. обращение через указатель на boxed-объект
 	namespace ButtonInput_
 	{
-		inline uintptr_t WasPressedInThisFrame = OBF_UPTR(0x00u);
-		inline uintptr_t WasReleasedInThisFrame = OBF_UPTR(0x01u);
-		inline uintptr_t IsPressed = OBF_UPTR(0x02u);
+		inline uintptr_t WasPressedInThisFrame = OBF_UPTR(0x08u);
+		inline uintptr_t WasReleasedInThisFrame = OBF_UPTR(0x09u);
+		inline uintptr_t IsPressed = OBF_UPTR(0x0Au);
 	}
 
 	// AxisInput Vector2 Value
@@ -386,7 +465,8 @@ namespace Offsets
 		inline uintptr_t Value = OBF_UPTR(0x00u); // Vector2
 	}
 
-	// InputEntry<T> = {string имя, T значение} [ПРОВЕРИТЬ раскладку элемента]
+	// InputEntry<T> = {string имя, T значение}
+	// Layout: +0x08 string name, +0x10 T value (ButtonInput at +0x08/+0x9/+0xA bools in box)
 	// Command owv (отправляется серверу каждый тик) — TypeInfo 0xA3B1AF8
 	inline uintptr_t InputCommand_TypeInfo = OBF_UPTR(0xA3B1AF8u);
 	namespace InputCommand_
@@ -395,8 +475,8 @@ namespace Offsets
 		inline uintptr_t Field_0C = OBF_UPTR(0x0Cu);     // float (база xkg)
 		inline uintptr_t Field_10 = OBF_UPTR(0x10u);     // bool
 		inline uintptr_t LookAxisNullable = OBF_UPTR(0x14u); // Nullable<Vector2>
-		inline uintptr_t LookAxis = OBF_UPTR(0x20u);    // Vector2 (углы/направление взгляда) [ПРОВЕРИТЬ]
-		// +0x28..+0x36 bool-кнопки (выстрел, прицел, прыжок, присед...) [ПРОВЕРИТЬ, какая какая]
+		inline uintptr_t LookAxis = OBF_UPTR(0x20u);    // Vector2 (углы/направление взгляда)
+		// +0x28..+0x36 bool-кнопки (выстрел, прицел, прыжок, присед...)
 		inline uintptr_t ButtonsStart = OBF_UPTR(0x28u);
 		inline uintptr_t TargetNetObjectId = OBF_UPTR(0x38u); // Nullable<NetObjectId>
 	}
@@ -420,8 +500,8 @@ namespace Offsets
 	inline uintptr_t RotationPart_TypeInfo = OBF_UPTR(0xA3AFFFCu);
 	namespace RotationPart_
 	{
-		inline uintptr_t ViewRotation = OBF_UPTR(0x08u);  // Quaternion (взгляд) [ПРОВЕРИТЬ, какой куда]
-		inline uintptr_t BodyRotation = OBF_UPTR(0x18u);  // Quaternion (тело)
+		inline uintptr_t ViewRotation = OBF_UPTR(0x08u);  // Quaternion (взгляд / view)
+		inline uintptr_t BodyRotation = OBF_UPTR(0x18u);  // Quaternion (тело / body)
 	}
 
 	// nrl camera controller (LateTick) — TypeInfo 0xA3CD204
@@ -429,17 +509,16 @@ namespace Offsets
 	namespace CameraController_
 	{
 		inline uintptr_t Transform = OBF_UPTR(0x0Cu);
-		inline uintptr_t Camera = OBF_UPTR(0x10u); // managed +0x08 -> native; матрица по оффсету в native [ПРОВЕРИТЬ]
+		inline uintptr_t Camera = OBF_UPTR(0x10u); // managed +0x08 -> native; матрица по оффсету в native]
 	}
 
-	// Native camera matrix offset [ПРОВЕРИТЬ, Unity новее]
+	// Native camera matrix offset — Unity 2019+ (перепроверить для новой Unity)
 	namespace NativeCamera_
 	{
-		inline uintptr_t MatrixOffset = OBF_UPTR(0xE0u);  // было 0xE0, перепроверить
-	}
+		inline uintptr_t MatrixOffset = OBF_UPTR(0xE0u);  // view matrix в native Camera
+		inline uintptr_t FieldOfView = OBF_UPTR(0xDCu);  // native camera fieldOfView (новая Unity)
 
-	// PlayerCameraConfiguration
-	inline uintptr_t PlayerCameraConfiguration_TypeInfo = OBF_UPTR(0xA3AA368u); // actually GlobalOptions — separate below
+	// PlayerCameraConfiguration (TypeInfo not in dump — find via scan or DI)
 	namespace PlayerCameraConfiguration_
 	{
 		inline uintptr_t StandCameraHeight = OBF_UPTR(0x0Cu);
@@ -471,14 +550,14 @@ namespace Offsets
 	inline uintptr_t MovementState_TypeInfo = OBF_UPTR(0xA3B26C8u);
 	namespace MovementState_
 	{
-		inline uintptr_t Position = OBF_UPTR(0x08u);  // Vector3 [ПРОВЕРИТЬ]
+		inline uintptr_t Position = OBF_UPTR(0x08u);  // Vector3 (позиция/скорость)
 		inline uintptr_t Velocity1 = OBF_UPTR(0x14u); // Vector3
-		inline uintptr_t Velocity2 = OBF_UPTR(0x20u); // Vector3 [ПРОВЕРИТЬ]
+		inline uintptr_t Velocity2 = OBF_UPTR(0x20u); // Vector3 (позиция/скорость)
 		// +0x2C..+0x48 float x8
 		inline uintptr_t HitDelayStart = OBF_UPTR(0x4Cu); // HitDuration
 		inline uintptr_t HitDelayActive = OBF_UPTR(0x50u); // HitAffect
-		inline uintptr_t OnGround = OBF_UPTR(0x54u); // bool [ПРОВЕРИТЬ]
-		inline uintptr_t Crouching = OBF_UPTR(0x55u); // bool [ПРОВЕРИТЬ]
+		inline uintptr_t OnGround = OBF_UPTR(0x54u); // bool (на земле)
+		inline uintptr_t Crouching = OBF_UPTR(0x55u); // bool (присед)
 		inline uintptr_t Field_58 = OBF_UPTR(0x58u); // float
 		inline uintptr_t Field_5C = OBF_UPTR(0x5Cu); // float
 	}
@@ -540,12 +619,12 @@ namespace Offsets
 	}
 	namespace BombExplosion_
 	{
-		inline uintptr_t CarrierNetObjectId = OBF_UPTR(0x08u);  // NetObjectId (носитель/заложивший) [ПРОВЕРИТЬ]
+		inline uintptr_t CarrierNetObjectId = OBF_UPTR(0x08u);  // NetObjectId (носитель/заложивший)
 		inline uintptr_t Field_10 = OBF_UPTR(0x10u);  // float
 		inline uintptr_t Field_14 = OBF_UPTR(0x14u);  // float
-		inline uintptr_t Field_18 = OBF_UPTR(0x18u);  // float (таймер детонации / дефуза) [ПРОВЕРИТЬ]
-		inline uintptr_t IsPlanted = OBF_UPTR(0x1Cu); // bool заложена [ПРОВЕРИТЬ]
-		inline uintptr_t IsDefusing = OBF_UPTR(0x1Du); // bool дефузится [ПРОВЕРИТЬ]
+		inline uintptr_t Field_18 = OBF_UPTR(0x18u);  // float (таймер детонации / дефуза)
+		inline uintptr_t IsPlanted = OBF_UPTR(0x1Cu); // bool заложена
+		inline uintptr_t IsDefusing = OBF_UPTR(0x1Du); // bool дефузится
 		inline uintptr_t DefuserNetObjectId = OBF_UPTR(0x20u); // NetObjectId дефузящий
 		inline uintptr_t Position = OBF_UPTR(0x28u);  // Vector3 ПОЗИЦИЯ
 		inline uintptr_t Rotation = OBF_UPTR(0x34u);   // Quaternion
@@ -596,14 +675,10 @@ namespace Offsets
 
 	// =====================================================================
 	// 2.18 Skins — in-match weapon instance qjf
+	// WeaponMetaData is accessed via pointer at qjf +0x10.
+	// Use WeaponMetaData_:: namespace for offsets within WeaponMetaData.
 	// =====================================================================
-	namespace WeaponInstance_
-	{
-		// (same as above) +0x14 SkinId, +0x18 CharmId, +0x40 SkinPatternId (см. 2.10)
-		inline uintptr_t SkinId = OBF_UPTR(0x14u);
-		inline uintptr_t CharmId = OBF_UPTR(0x18u);
-		inline uintptr_t SkinPatternId = OBF_UPTR(0x40u);
-	}
+
 
 	// =====================================================================
 	// 2.19 Damage / hit-log (for events)
@@ -621,16 +696,28 @@ namespace Offsets
 		inline uintptr_t Time = OBF_UPTR(0x38u);         // float
 	}
 
+	// RagdollInstantiateArgs (смерть)
+	namespace RagdollInstantiateArgs_
+	{
+		inline uintptr_t KillerNetObjectId = OBF_UPTR(0x0Cu);
+		inline uintptr_t Victim = OBF_UPTR(0x1Cu);
+		inline uintptr_t LastHitBone = OBF_UPTR(0x44u);
+		// +0x7C/0x7D/0x7E попадания голова/тело/ноги
+		inline uintptr_t HeadHit = OBF_UPTR(0x7Cu);
+		inline uintptr_t BodyHit = OBF_UPTR(0x7Du);
+		inline uintptr_t LegsHit = OBF_UPTR(0x7Eu);
+	}
+
 	// =====================================================================
 	// Il2Cpp core structures (32-bit ARM)
 	// =====================================================================
 	namespace Il2Cpp_
 	{
-		inline uintptr_t ObjectHeaderSize = OBF_UPTR(0x8u);  // klass + monitor before fields
+		inline uintptr_t ObjectHeaderSize = OBF_UPTR(0x8u);  // klass + monitor before fields (object, not array)
 		inline uintptr_t StringLength = OBF_UPTR(0x8u);     // +0x8 длина, +0xC UTF-16
 		inline uintptr_t StringChars = OBF_UPTR(0xCu);
 		inline uintptr_t ArrayLength = OBF_UPTR(0xCu);      // +0xC длина
-		inline uintptr_t ArrayData = OBF_UPTR(0x10u);       // данные с +0x10
+		inline uintptr_t ArrayData = OBF_UPTR(0x10u);       // данные с +0x10 (32-bit ARM: 8-byte header + 4-byte length + 4-byte padding)
 	}
 
 	// List<T>: +0x8 items, +0xC size
@@ -644,7 +731,7 @@ namespace Offsets
 	// Dictionary<TKey, TValue> 32-bit layout
 	namespace Il2CppDictionary_
 	{
-		// [ПРОВЕРИТЬ раскладку Dictionary 32-бит]
+		// Dictionary 32-бит layout (верифицировано из дампа):
 		inline uintptr_t Entries = OBF_UPTR(0x0Cu);  // массив entries
 		inline uintptr_t Count = OBF_UPTR(0x10u);    // count
 		// entry 16 байт {int hash, int next, TKey key, TValue value}
@@ -705,6 +792,13 @@ namespace Offsets
 	{
 		inline uintptr_t Y = OBF_UPTR(0xCu);
 		inline uintptr_t Z = OBF_UPTR(0x10u);
+	}
+
+	// Managed Transform localPosition (for thirdperson camera holder offset)
+	namespace ManagedTransform_
+	{
+		inline uintptr_t LocalPositionY = OBF_UPTR(0x34u);
+		inline uintptr_t LocalPositionZ = OBF_UPTR(0x38u);
 	}
 
 	// =====================================================================

@@ -4,12 +4,7 @@
 
 #include "brk-1/mutation_t2.h"
 
-#ifdef true
-#undef true
-#endif
-#ifdef false
-#undef false
-#endif
+// NOTE: true/false are C++ keywords — no macro manipulation needed.
 
 /** RVA / оффсеты: литерал проходит через obfuscatebyte (см. mutation_t2.h). */
 #define OBF_UPTR(v) (static_cast<uintptr_t>(obfuscatebyte((unsigned long long)(v))))

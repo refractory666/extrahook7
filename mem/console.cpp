@@ -15,12 +15,7 @@
 #include "../brk-1/mutation_t2.h"
 #include "../brk-2/anti_debug.h"
 #include "../brk-2/hidden_fastfail.h"
-#ifdef true
-#undef true
-#endif
-#ifdef false
-#undef false
-#endif
+// NOTE: true/false are C++ keywords — no macro manipulation needed.
 
 namespace Console
 {

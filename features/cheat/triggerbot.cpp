@@ -120,12 +120,20 @@ namespace triggerbot
 							}
 						}
 						if (weapon_part && weapon_part > 0x10000) {
-							// nrk +0x18 (WeaponContext) +0x58 -> State<WeaponState>
-							// WeaponState::Attack = 1 (from Offsets::WeaponState_ namespace)
-							uint8_t attack_state = Offsets::WeaponState_::Attack;
-							mem->Write(weapon_part + Offsets::WeaponPart_::WeaponContext + Offsets::WeaponContext_::WeaponState,
-								&attack_state, sizeof(attack_state));
-							g_trigger_fired = true;
+							// nrk +0x18 -> WeaponContext* (pointer to heap-allocated struct)
+							// State<WeaponState>* at WeaponContext +0x48 (boxed, need to dereference)
+							// mode(int) at State +0x08
+							uint32_t weapon_ctx_ptr = 0;
+							mem->Read(weapon_part + Offsets::WeaponPart_::WeaponContext, &weapon_ctx_ptr, sizeof(weapon_ctx_ptr));
+							if (weapon_ctx_ptr && weapon_ctx_ptr > 0x10000) {
+								uint32_t state_ptr = 0;
+								mem->Read(weapon_ctx_ptr + Offsets::WeaponContext_::WeaponState, &state_ptr, sizeof(state_ptr));
+								if (state_ptr && state_ptr > 0x10000) {
+									uint8_t attack_state = Offsets::WeaponState_::Attack;
+									mem->Write(state_ptr + 0x08, &attack_state, sizeof(attack_state));
+									g_trigger_fired = true;
+								}
+							}
 						}
 					}
 				}

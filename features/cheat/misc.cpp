@@ -207,18 +207,13 @@ namespace misc
 			if (g_misc_teleport_key != 0 && key_pressed_edge(g_misc_teleport_key))
 				g_misc_teleport_active = !g_misc_teleport_active;
 
-			if (esp::g_local_player != 0 && esp::g_client_world >= 0x10000) {
-				// ClientWorld +0x0C -> ClientWorldOptions
-				// Options affect MaxCommandsToSend/TargetBufferSize for fake lag.
-				uint32_t options = 0;
-				mem->Read(esp::g_client_world + Offsets::ClientWorld_::Options, &options, sizeof(options));
-				if (options && options > 0x10000) {
-					// These offsets are [ПРОВЕРИТЬ] — need to find actual field offsets for
-					// MaxCommandsToSend / TargetBufferSize in ClientWorldOptions.
-					// For now, toggle InputPrediction off (at +0x0C in ClientWorldOptions).
-					bool prediction = !g_misc_teleport_active;
-					mem->Write(options + 0x0C, &prediction, sizeof(bool));
-				}
+			if (esp::g_client_world >= 0x10000) {
+				// ClientWorldOptions is embedded directly in ClientWorld at +0x0C (not a pointer).
+				// InputPrediction is at ClientWorldOptions +0x0C -> absolute: g_client_world + 0x0C + 0x0C.
+				// Toggle InputPrediction off for fake lag.
+				bool prediction = !g_misc_teleport_active;
+				mem->Write(esp::g_client_world + Offsets::ClientWorld_::Options +
+					Offsets::ClientWorldOptions_::InputPrediction, &prediction, sizeof(bool));
 			}
 		}
 
@@ -242,9 +237,8 @@ namespace misc
 						mem->Read(cam_obj + 0x08, &native_cam, sizeof(native_cam));
 						if (native_cam && native_cam > 0x10000)
 						{
-							// Native camera fieldOfView — offset is [ПРОВЕРИТЬ] for newer Unity.
-							// Old Unity had it at a specific native offset; we try 0xDC as a guess.
-							mem->Write(native_cam + 0xDC, &g_fov_value, sizeof(float));
+							// Native camera fieldOfView — newer Unity (1.0.0).
+							mem->Write(native_cam + Offsets::NativeCamera_::FieldOfView, &g_fov_value, sizeof(float));
 						}
 					}
 				}
@@ -259,8 +253,8 @@ namespace misc
 						// Write local position z = -dist, y = some offset
 						float z = -g_thirdperson_dist;
 						float y = g_thirdperson_dist * 0.3f;
-						mem->Write(cam_holder_transform + 0x34, &y, sizeof(float)); // localPosition.y
-						mem->Write(cam_holder_transform + 0x38, &z, sizeof(float)); // localPosition.z
+						mem->Write(cam_holder_transform + Offsets::ManagedTransform_::LocalPositionY, &y, sizeof(float));
+						mem->Write(cam_holder_transform + Offsets::ManagedTransform_::LocalPositionZ, &z, sizeof(float));
 					}
 				}
 			}
@@ -288,8 +282,8 @@ namespace misc
 					    !btn_array || btn_count <= 0)
 						return;
 
-					// InputEntry<T> = { string name, T value } [ПРОВЕРИТЬ layout]
-					// Each entry is 16 bytes: +0x08 string name, +0x10 T value (ButtonInput: +0x08/+0x9/+0xA bools)
+					// InputEntry<T> = { string name (+0x08), T value (+0x10) }
+					// ButtonInput: +0x0 WasPressedInThisFrame, +0x1 WasReleasedInThisFrame, +0x2 IsPressed
 					for (int i = 0; i < btn_count && i < 32; i++)
 					{
 						uint32_t entry = btn_array + i * 4;
@@ -306,9 +300,15 @@ namespace misc
 
 						if (btn_name == action_name)
 						{
-							// ButtonInput: +0x0 WasPressedInThisFrame, +0x1 WasReleasedInThisFrame, +0x2 IsPressed
-							bool val = true;
-							mem->Write(entry_obj + 0x0A, &val, sizeof(bool)); // IsPressed
+							// ButtonInput is stored as a boxed value at InputEntry +0x10.
+							// Boxed object header is 8 bytes, then ButtonInput fields at +0x0/+0x1/+0x2.
+							// So IsPressed is at boxed_ptr + 0x0A.
+							uint32_t button_input = 0;
+							mem->Read(entry_obj + 0x10, &button_input, sizeof(button_input));
+							if (button_input && button_input > 0x10000) {
+								bool val = true;
+								mem->Write(button_input + Offsets::ButtonInput_::IsPressed, &val, sizeof(bool));
+							}
 							return;
 						}
 					}

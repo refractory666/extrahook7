@@ -22,6 +22,22 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+
+// =====================================================
+// Helper: read OwnerId from a NetObject.
+// From il2cpp.h: NetObject_Fields.lpmx is NetObjectId_o* (pointer at +0x08)
+// NetObjectId is a boxed struct (contains a TypeId pointer) so it lives on the heap.
+// Layout inside NetObjectId: _id(uint32)@0x08, OwnerId(byte)@0x0C.
+// =====================================================
+static uint8_t read_owner_id(mem::Memory* mem, uint32_t net_obj)
+{
+	uint32_t netobj_ptr = 0;
+	mem->Read(net_obj + Offsets::NetObject_::NetObjectIdPtr, &netobj_ptr, sizeof(netobj_ptr));
+	if (!netobj_ptr || netobj_ptr < 0x10000) return 0;
+	uint8_t owner_id = 0;
+	mem->Read(netobj_ptr + 0x0C, &owner_id, sizeof(owner_id));
+	return owner_id;
+}
 #include <map>
 #include <unordered_set>
 #include <cctype>
@@ -512,7 +528,7 @@ namespace esp
 		if (!transport || transport < 0x10000) return false;
 
 		uint32_t our_actor = 0;
-		mem->Read(transport + 0x68, &our_actor, sizeof(our_actor));
+		mem->Read(transport + Offsets::Transport_::LocalActor, &our_actor, sizeof(our_actor));
 		if (!our_actor || our_actor < 0x10000) return false;
 
 		uint8_t my_actor_id = 0;
@@ -532,13 +548,12 @@ namespace esp
 		for (int i = 0; i < count; i++)
 		{
 			uint32_t net_obj = 0;
-			if (!mem->Read(array_ptr + (uint32_t)(Offsets::Il2Cpp_::ObjectHeaderSize + i * 4), &net_obj, sizeof(net_obj)) || !net_obj)
+			if (!mem->Read(array_ptr + (uint32_t)(Offsets::Il2Cpp_::ArrayData + i * 4), &net_obj, sizeof(net_obj)) || !net_obj)
 				continue;
 			uint32_t klass = 0;
 			mem->Read(net_obj, &klass, sizeof(klass));
 			if (klass == Offsets::Player_TypeInfo) {
-				uint8_t owner_id = 0;
-				mem->Read(net_obj + Offsets::NetObject_::OwnerId, &owner_id, sizeof(owner_id));
+				uint8_t owner_id = read_owner_id(mem, net_obj);
 				if (owner_id == my_actor_id) {
 					g_local_player = net_obj;
 					return true;
@@ -794,7 +809,7 @@ namespace esp
 		uint32_t our_actor = 0;
 		std::string my_nick;
 		if (transport && transport > 0x10000) {
-			mem->Read(transport + 0x68, &our_actor, sizeof(our_actor));
+			mem->Read(transport + Offsets::Transport_::LocalActor, &our_actor, sizeof(our_actor));
 			if (our_actor && our_actor > 0x10000)
 				mem->Read(our_actor + Offsets::Actor_::ActorId, &my_actor_id, sizeof(my_actor_id));
 		}
@@ -802,14 +817,13 @@ namespace esp
 		for (int i = 0; i < count; i++)
 		{
 			uint32_t net_obj = 0;
-			if (!mem->Read(array_ptr + (uint32_t)(Offsets::Il2Cpp_::ObjectHeaderSize + i * 4), &net_obj, sizeof(net_obj)) || !net_obj)
+			if (!mem->Read(array_ptr + (uint32_t)(Offsets::Il2Cpp_::ArrayData + i * 4), &net_obj, sizeof(net_obj)) || !net_obj)
 				continue;
 			uint32_t klass = 0;
 			mem->Read(net_obj, &klass, sizeof(klass));
 			if (klass != Offsets::Player_TypeInfo) continue;
 
-			uint8_t owner_id = 0;
-			mem->Read(net_obj + Offsets::NetObject_::OwnerId, &owner_id, sizeof(owner_id));
+			uint8_t owner_id = read_owner_id(mem, net_obj);
 			uint8_t team = 0;
 			mem->Read(net_obj + Offsets::Player_::Team, &team, sizeof(team));
 
@@ -845,8 +859,13 @@ namespace esp
 				p.armor = armor;
 			}
 
+			// Player_::State at +0x4C is a pointer to boxed byte enum (aad)
+			// value__ is at boxed enum +0x08
+			uint32_t state_ptr = 0;
+			mem->Read(net_obj + Offsets::Player_::State, &state_ptr, sizeof(state_ptr));
 			uint8_t state = 0;
-			mem->Read(net_obj + Offsets::Player_::State, &state, sizeof(state));
+			if (state_ptr && state_ptr > 0x10000)
+				mem->Read(state_ptr + 0x08, &state, sizeof(state));
 			p.is_alive = (state != 0);
 
 			p.is_valid = (p.x != 0.f || p.y != 0.f || p.z != 0.f);
@@ -887,10 +906,13 @@ namespace esp
 		}
 		if (!weapon_part) return "None";
 
-		// nrk +0x18 (WeaponContext) +0x54 -> qjf ActiveWeapon
-		uint32_t weapon_ctx = weapon_part + Offsets::WeaponPart_::WeaponContext;
+		// nrk +0x18 -> WeaponContext* (pointer to heap-allocated struct)
+		// ActiveWeapon at WeaponContext +0x44 (qjf* — pointer to weapon instance)
+		uint32_t weapon_ctx_ptr = 0;
+		mem->Read(weapon_part + Offsets::WeaponPart_::WeaponContext, &weapon_ctx_ptr, sizeof(weapon_ctx_ptr));
+		if (!weapon_ctx_ptr || weapon_ctx_ptr < 0x10000) return "None";
 		uint32_t active_weapon = 0;
-		mem->Read(weapon_ctx + Offsets::WeaponContext_::ActiveWeapon, &active_weapon, sizeof(active_weapon));
+		mem->Read(weapon_ctx_ptr + Offsets::WeaponContext_::ActiveWeapon, &active_weapon, sizeof(active_weapon));
 		if (!active_weapon || active_weapon < 0x10000) return "None";
 
 		uint8_t weapon_id = 0;
@@ -948,7 +970,7 @@ namespace esp
 		for (int i = 0; i < count; i++)
 		{
 			uint32_t net_obj = 0;
-			if (!mem->Read(array_ptr + (uint32_t)(Offsets::Il2Cpp_::ObjectHeaderSize + i * 4), &net_obj, sizeof(net_obj)) || !net_obj)
+			if (!mem->Read(array_ptr + (uint32_t)(Offsets::Il2Cpp_::ArrayData + i * 4), &net_obj, sizeof(net_obj)) || !net_obj)
 				continue;
 			uint32_t klass = 0;
 			mem->Read(net_obj, &klass, sizeof(klass));
