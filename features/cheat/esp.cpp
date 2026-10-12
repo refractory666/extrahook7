@@ -22,13 +22,11 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <map>
+#include <unordered_set>
+#include <cctype>
+#include <cstring>
 
-// =====================================================
-// Helper: read OwnerId from a NetObject.
-// From il2cpp.h: NetObject_Fields.lpmx is NetObjectId_o* (pointer at +0x08)
-// NetObjectId is a boxed struct (contains a TypeId pointer) so it lives on the heap.
-// Layout inside NetObjectId: _id(uint32)@0x08, OwnerId(byte)@0x0C.
-// =====================================================
 static uint8_t read_owner_id(mem::Memory* mem, uint32_t net_obj)
 {
 	uint32_t netobj_ptr = 0;
@@ -38,10 +36,6 @@ static uint8_t read_owner_id(mem::Memory* mem, uint32_t net_obj)
 	mem->Read(netobj_ptr + 0x0C, &owner_id, sizeof(owner_id));
 	return owner_id;
 }
-#include <map>
-#include <unordered_set>
-#include <cctype>
-#include <cstring>
 
 using namespace Clipper2Lib;
 
